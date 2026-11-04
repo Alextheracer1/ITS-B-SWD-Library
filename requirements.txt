@@ -1,0 +1,13 @@
+Django>=6.0,<7.0
+djangorestframework>=3.15.0
+sqlparse>=0.5.0
+asgiref>=3.8.0
+
+# Optional: Für PostgreSQL-Datenbankanbindung (Marcel)
+# psycopg2-binary>=2.9.9
+
+# Optional: Für MySQL/MariaDB-Datenbankanbindung
+# mysqlclient>=2.2.0
+
+# Optional: Für erweiterte Umgebungsvariablen (.env)
+# python-dotenv>=1.0.0

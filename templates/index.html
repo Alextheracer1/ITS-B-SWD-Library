@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}LiBros - Übersicht{% endblock %}
+
+{% block content %}
+<div class="hero-banner mb-5 text-center">
+    <h1 class="display-5 fw-bold">Willkommen bei LiBros</h1>
+    <p class="lead mb-0">Zentrales Bibliotheks-Management-System (Fachhochschule Salzburg)</p>
+</div>
+
+<div class="row g-4">
+    <!-- Use Case 1: Ausleihe -->
+    <div class="col-md-4">
+        <div class="card h-100 card-custom">
+            <div class="card-body">
+                <span class="badge bg-primary mb-2">UC-01</span>
+                <h5 class="card-title fw-bold">Medium ausleihen (Loan)</h5>
+                <h6 class="card-subtitle mb-2 text-muted">Verantwortlich: Alexander Graf</h6>
+                <p class="card-text">
+                    Auswahl eines Mediums auf Titelebene, automatische Zuweisung eines konkreten physischen Exemplars,
+                    FSK-Prüfung, Concurrency Control und Ermittlung des Regal-Standorts.
+                </p>
+                <div class="mt-auto">
+                    <a href="#" class="btn btn-outline-primary w-100 disabled" aria-disabled="true">
+                        Ausleihe aufrufen (In Entwicklung)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Use Case 2: Rückgabe -->
+    <div class="col-md-4">
+        <div class="card h-100 card-custom">
+            <div class="card-body">
+                <span class="badge bg-success mb-2">UC-02</span>
+                <h5 class="card-title fw-bold">Medium zurückgeben (Return)</h5>
+                <h6 class="card-subtitle mb-2 text-muted">Verantwortlich: David Leberbauer</h6>
+                <p class="card-text">
+                    Rückgabe über die automatisierte Rückgabestation durch Barcode-Scan,
+                    Fristüberprüfung, Gebührenberechnung und Nutzungsstatistik-Aktualisierung.
+                </p>
+                <div class="mt-auto">
+                    <a href="#" class="btn btn-outline-success w-100 disabled" aria-disabled="true">
+                        Rückgabestation (In Entwicklung)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Use Case 3: Reservierung -->
+    <div class="col-md-4">
+        <div class="card h-100 card-custom">
+            <div class="card-body">
+                <span class="badge bg-warning text-dark mb-2">UC-03</span>
+                <h5 class="card-title fw-bold">Medium reservieren (Reservation)</h5>
+                <h6 class="card-subtitle mb-2 text-muted">Verantwortlich: Marcel Kitzmantel</h6>
+                <p class="card-text">
+                    Vormerkung eines Mediums für ein zukünftiges Zeitintervall,
+                    rechnerische Kapazitätsprüfung, FSK-Prüfung und Abholfrist-Verwaltung.
+                </p>
+                <div class="mt-auto">
+                    <a href="#" class="btn btn-outline-warning text-dark w-100 disabled" aria-disabled="true">
+                        Reservierung (In Entwicklung)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-5 border-0 shadow-sm">
+    <div class="card-body">
+        <h5 class="fw-bold">Datenbankanbindung & Architektur</h5>
+        <p class="text-muted mb-2">
+            Die Datenbankanbindung unterstützt standardmäßig die relationale SQL-Datenbank <strong>SQLite</strong> und kann über Umgebungsvariablen nahtlos auf <strong>PostgreSQL</strong> oder <strong>MySQL</strong> umgeschaltet werden.
+        </p>
+        <p class="mb-0">
+            <a href="/admin/" class="btn btn-sm btn-secondary">Zu Django Admin (Stammdatenpflege)</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
