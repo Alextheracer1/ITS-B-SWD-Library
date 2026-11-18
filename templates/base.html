@@ -16,9 +16,25 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand fw-bold" href="{% url 'home' %}">📚 LiBros</a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{% url 'home' %}">Übersicht</a>
-                <a class="nav-link" href="/admin/">Django Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'loans:catalog' %}">📖 Ausleihe (UC-01)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'returns:station' %}">📟 Rückgabestation (UC-02)</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'reservations:index' %}">📅 Reservierung (UC-03)</a>
+                    </li>
+                </ul>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="{% url 'home' %}">Übersicht</a>
+                    <a class="nav-link" href="/admin/">Django Admin</a>
+                </div>
             </div>
         </div>
     </nav>
@@ -32,5 +48,6 @@
             <small>LiBros &copy; Fachhochschule Salzburg GmbH &bull; Software Design Lab</small>
         </div>
     </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

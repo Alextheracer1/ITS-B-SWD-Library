@@ -1,4 +1,164 @@
-{# Use Case 3: Template für Medium reservieren (Patron Web-App UI) #}
-{# Verantwortlich: Marcel Kitzmantel (3. Autor) #}
+{% extends "base.html" %}
 
-{# TODO: Marcel Kitzmantel - HTML-Template für Medienauswahl, Zeitintervall und Reservierungsbestätigung #}
+{% block title %}LiBros - Use Case 3: Medium reservieren{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">UC-03: Medium reservieren</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 fw-bold text-warning text-dark">📅 Use Case 3: Medium reservieren (Hold / Vormerkung)</h1>
+                <p class="text-muted mb-0">Verantwortlich: <strong>Marcel Kitzmantel (3. Autor)</strong> &bull; Client: Web-Applikation</p>
+            </div>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">&larr; Zurück zur Übersicht</a>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                {% if message.tags == 'success' %}
+                    <h5 class="alert-heading">🎉 Reservierung bestätigt!</h5>
+                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <h5 class="alert-heading">⚠️ Reservierung abgelehnt!</h5>
+                {% else %}
+                    <h5 class="alert-heading">ℹ️ Hinweis</h5>
+                {% endif %}
+                <p class="mb-0">{{ message }}</p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Reservierungs-Formular -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+            <div class="card-header bg-warning text-dark fw-bold py-3">
+                📝 Neue Vormerkung / Reservierung erfassen
+            </div>
+            <div class="card-body">
+                <form action="{% url 'reservations:create' %}" method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.patron.id_for_label }}" class="form-label fw-bold">1. Kunde auswählen:</label>
+                        {{ form.patron }}
+                        <div class="form-text">Prüft automatisch Kundenkonto & FSK-Freigabe.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.media.id_for_label }}" class="form-label fw-bold">2. Gewünschtes Medium (Titel):</label>
+                        {{ form.media }}
+                        <div class="form-text">Reservierung erfolgt auf Titelebene (nicht spezifisches Exemplar).</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label for="{{ form.start_date.id_for_label }}" class="form-label fw-bold">Startdatum:</label>
+                            {{ form.start_date }}
+                        </div>
+                        <div class="col-6">
+                            <label for="{{ form.end_date.id_for_label }}" class="form-label fw-bold">Enddatum:</label>
+                            {{ form.end_date }}
+                        </div>
+                        <div class="form-text">Das Intervall muss in der Zukunft liegen.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning text-dark fw-bold w-100 py-2 shadow-sm">
+                        🔒 Verbindliche Reservierung anfragen
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer bg-light border-0 small text-muted">
+                🛡️ Transaktionsgesichert gegen konkurrierende Überbuchungen durch Zeilensperren (<code>select_for_update</code>).
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktive Reservierungen & Lifecycle-Verwaltung -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">📋 Aktive Reservierungen & Abholfristen</h5>
+                <span class="badge bg-warning text-dark">{{ active_reservations|length }} aktiv</span>
+            </div>
+            <div class="card-body p-0">
+                {% if active_reservations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th># / Titel</th>
+                                    <th>Kunde</th>
+                                    <th>Zeitintervall</th>
+                                    <th>Abholfrist</th>
+                                    <th class="text-end">Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for res in active_reservations %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">#{{ res.id }}</span><br>
+                                        <strong>{{ res.media.name }}</strong>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ res.patron.name }}</div>
+                                        <small class="text-muted">{{ res.patron.customer_number }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="small">
+                                            {{ res.start_date|date:"d.m.Y" }} &ndash; {{ res.end_date|date:"d.m.Y" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">
+                                            Frist: {{ res.last_pickup_date|date:"d.m.Y" }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <form action="{% url 'reservations:cancel' res.id %}" method="post" class="d-inline" onsubmit="return confirm('Möchten Sie diese Reservierung wirklich stornieren?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Reservierung stornieren & Kapazität freigeben">
+                                                ❌ Stornieren
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <span class="fs-1 d-block mb-2">📭</span>
+                        <p class="mb-0">Aktuell liegen keine aktiven Reservierungen vor.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Lifecycle-Informationen -->
+        <div class="card border-0 shadow-sm bg-light">
+            <div class="card-body">
+                <h6 class="fw-bold">🔄 Reservierungs-Lifecycle (Abschnitt 2.4):</h6>
+                <ul class="small text-muted mb-0 ps-3">
+                    <li><strong>Abholung:</strong> Holt der Kunde das Medium fristgerecht ab, wird die Reservierung in <em>UC-01 (Ausleihe)</em> eingelöst und im Loan-Datensatz referenziert.</li>
+                    <li><strong>Stornierung:</strong> Storniert der Kunde vorab, wird die Reservierung aufgehoben und die Kapazität sofort wieder für andere freigegeben.</li>
+                    <li><strong>Verfall:</strong> Verstreicht das <em>Last Pickup Date</em> ohne Abholung, läuft die Vormerkung automatisch ab (<em>expired</em>) und gibt die Kapazität wieder frei.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

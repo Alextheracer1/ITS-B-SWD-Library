@@ -1,8 +1,392 @@
-{# Use Case 2: Template für Rückgabestation (Return Station HTML-Hardwaresimulation) #}
-{# Verantwortlich: David Leberbauer (2. Autor) #}
+{% extends "base.html" %}
 
-{# Anforderung: Leichtgewichtige HTML-Oberfläche zur Simulation des physischen Geräts, #}
-{# welche exakt dieselben serverseitigen Abläufe und Statusübergänge ansteuert wie ein reales Gerät #}
-{# (Barcode-Eingabe/Scan, Statusprüfung, Bestätigung, Fehleranzeige). #}
+{% block title %}LiBros - Rückgabestation (Hardware-Simulation){% endblock %}
 
-{# TODO: David Leberbauer - HTML-Template für die Rückgabestation-Simulation #}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">UC-02: Medium zurückgeben</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 fw-bold text-success">📟 Use Case 2: Automatische Rückgabestation</h1>
+                <p class="text-muted mb-0">Verantwortlich: <strong>David Leberbauer (2. Autor)</strong> &bull; Client: Hardware-Simulation (Return Station)</p>
+            </div>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">&larr; Zurück zur Übersicht</a>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- HARDWARE SIMULATION DEVICE -->
+    <div class="col-lg-7">
+        <div class="card shadow-lg border-dark" style="background: #2b3035; color: #fff; border-radius: 16px;">
+            <!-- Terminal Header & Status LEDs -->
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center py-3" style="background: #1f2327;">
+                <div class="d-flex align-items-center">
+                    <span class="fs-4 me-2">🤖</span>
+                    <div>
+                        <strong class="text-light">LiBros AutoReturn-X500</strong>
+                        <div class="small text-secondary">Rückgabestation Terminal #04 &bull; Firmware v2.6</div>
+                    </div>
+                </div>
+                <!-- Status LEDs -->
+                <div class="d-flex gap-3 align-items-center bg-dark px-3 py-2 rounded-pill border border-secondary">
+                    <div class="d-flex align-items-center">
+                        <span id="led-ready" class="rounded-circle me-1" style="width: 12px; height: 12px; background: #28a745; box-shadow: 0 0 8px #28a745;"></span>
+                        <small class="text-secondary" style="font-size: 0.75rem;">READY</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span id="led-busy" class="rounded-circle me-1" style="width: 12px; height: 12px; background: #555;"></span>
+                        <small class="text-secondary" style="font-size: 0.75rem;">BUSY</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span id="led-error" class="rounded-circle me-1" style="width: 12px; height: 12px; background: #555;"></span>
+                        <small class="text-secondary" style="font-size: 0.75rem;">DENIED</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal LCD Display Screen -->
+            <div class="card-body p-4">
+                <div id="lcd-screen" class="p-4 mb-4 rounded border" style="background: #0f171e; font-family: 'Courier New', Courier, monospace; min-height: 180px; border-color: #00ff66 !important; box-shadow: inset 0 0 15px rgba(0,255,100,0.15);">
+                    <div class="d-flex justify-content-between text-muted border-bottom border-secondary pb-1 mb-2">
+                        <span id="lcd-time">{{ current_time|date:"Y-m-d H:i" }}</span>
+                        <span>[ONLINE &bull; SERVER CONNECTED]</span>
+                    </div>
+                    <div id="lcd-content">
+                        <h4 class="text-success mb-2" id="lcd-title">&gt; BEREIT FÜR RÜCKGABE</h4>
+                        <p class="text-light mb-1" id="lcd-msg">Bitte scannen Sie den Barcode des physischen Exemplars.</p>
+                        <div class="small text-secondary" id="lcd-submsg">&gt; Warten auf Barcode-Scanner-Signal...</div>
+                    </div>
+                </div>
+
+                <!-- Hardware Interface: Barcode Scanner Input -->
+                <div class="bg-dark p-3 rounded border border-secondary mb-3">
+                    <label class="form-label text-warning small fw-bold mb-2">
+                        📷 1. BARCODE-SCANNER (Eingabe / Laserscanner)
+                    </label>
+                    <div class="input-group">
+                        <input type="text" id="barcode-input" class="form-control form-control-lg font-monospace bg-light" placeholder="z. B. BARCODE-BOOK-001" autofocus>
+                        <button class="btn btn-warning fw-bold px-4" type="button" id="btn-scan">
+                            ⚡ Scannen & Prüfen
+                        </button>
+                    </div>
+                    <div class="form-text text-secondary mt-1">
+                        Sendet Annahmeanfrage an den Server (Endpoint 1: <code>/returns/api/check/</code>).
+                    </div>
+                </div>
+
+                <!-- Hardware Interface: Physical Intake / Einwurfschacht -->
+                <div id="intake-section" class="bg-dark p-3 rounded border border-secondary text-center">
+                    <label class="form-label text-info small fw-bold mb-2 d-block">
+                        📥 2. PHYSISCHER EINWURFSCHACHT (Intake Mechanism)
+                    </label>
+                    <div id="intake-door" class="p-3 mb-2 rounded bg-black border border-secondary text-secondary">
+                        <span id="door-status-icon">🔒</span> <strong id="door-status-text">Einwurfschacht verriegelt</strong>
+                    </div>
+                    <button class="btn btn-success btn-lg w-100 fw-bold disabled" id="btn-deposit" disabled>
+                        📖 Exemplar jetzt einwerfen (Rückgabe bestätigen)
+                    </button>
+                    <div class="form-text text-secondary mt-1">
+                        Sendet Bestätigung an den Server (Endpoint 2: <code>/returns/api/confirm/</code>).
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Printer / Receipt Output -->
+            <div id="receipt-container" class="card-footer border-secondary p-4 d-none" style="background: #1f2327;">
+                <div class="bg-white text-dark p-3 rounded shadow-sm font-monospace" style="font-size: 0.9rem;">
+                    <div class="text-center border-bottom pb-2 mb-2">
+                        <strong>*** LiBros BIBLIOTHEKSSYSTEM ***</strong><br>
+                        <small>RÜCKGABE-QUITTUNG</small>
+                    </div>
+                    <div id="receipt-body"></div>
+                    <div class="text-center border-top pt-2 mt-2 text-muted small">
+                        Vielen Dank für Ihren Besuch!
+                    </div>
+                </div>
+                <button class="btn btn-outline-light w-100 mt-3" id="btn-reset">
+                    🔄 Nächstes Exemplar bearbeiten
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEST & DEMO PANEL: Aktive Ausleihen -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">🎯 Schnellauswahl für Testläufe</h5>
+                <span class="badge bg-primary">{{ active_loans|length }} aktiv</span>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">
+                    Klicken Sie auf ein beliebiges Exemplar, um den Barcode direkt in die Rückgabestation zu übertragen:
+                </p>
+
+                {% if active_loans %}
+                    <div class="list-group mb-3">
+                        {% for item in active_loans %}
+                            <button type="button" class="list-group-item list-group-item-action quick-barcode-btn" data-barcode="{{ item.loan.copy.barcode }}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 text-primary fw-bold">{{ item.loan.copy.media.name }}</h6>
+                                    {% if item.is_overdue %}
+                                        <span class="badge bg-danger">Überfällig (+{{ item.overdue_days }} Tage)</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Fristgerecht</span>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex justify-content-between small text-muted">
+                                    <span>Barcode: <code class="text-dark">{{ item.loan.copy.barcode }}</code></span>
+                                    <span>Kunde: {{ item.loan.patron.name }}</span>
+                                </div>
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info small mb-3">
+                        Derzeit sind keine Medien ausgeliehen. Leihen Sie zuerst ein Medium unter 
+                        <a href="{% url 'loans:catalog' %}" class="alert-link">Use Case 1 (Ausleihe)</a> aus.
+                    </div>
+                {% endif %}
+
+                <!-- Ungültige Barcodes für Negativtests -->
+                <div class="card bg-light border-0 p-3">
+                    <strong class="small text-muted mb-2 d-block">🧪 Negativ- & Grenzfall-Tests (Fehlerfälle):</strong>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm quick-barcode-btn" data-barcode="UNKNOWN-BARCODE-999">
+                            ❌ Unbekannter Barcode
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm quick-barcode-btn" data-barcode="BARCODE-AVAILABLE-NOT-LOANED">
+                            ⚠️ Nicht ausgeliehenes Exemplar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info-Card: Ablauf der Rückgabestation -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-bold">ℹ️ Architektur-Ablauf (Sequenzdiagramm UC-02)</h6>
+                <ol class="small text-muted mb-0 ps-3">
+                    <li><strong>Scan:</strong> Station fragt Server: <em>Darf Exemplar angenommen werden?</em></li>
+                    <li><strong>Prüfung:</strong> Server prüft Barcode & offenen Loan. Bei Fristüberschreitung werden Überziehungstage & höchster Genre-Tarif ermittelt.</li>
+                    <li><strong>Einwurf:</strong> Bei Freigabe entriegelt der Schacht und der Kunde deponiert das Medium.</li>
+                    <li><strong>Abschluss:</strong> Server schließt den Loan, bucht Gebühren, erhöht Nutzungszähler und prüft den Schwellenwert (Statusübergang).</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const barcodeInput = document.getElementById('barcode-input');
+    const btnScan = document.getElementById('btn-scan');
+    const btnDeposit = document.getElementById('btn-deposit');
+    const btnReset = document.getElementById('btn-reset');
+    const lcdScreen = document.getElementById('lcd-screen');
+    const lcdTitle = document.getElementById('lcd-title');
+    const lcdMsg = document.getElementById('lcd-msg');
+    const lcdSubmsg = document.getElementById('lcd-submsg');
+    const ledReady = document.getElementById('led-ready');
+    const ledBusy = document.getElementById('led-busy');
+    const ledError = document.getElementById('led-error');
+    const intakeDoor = document.getElementById('intake-door');
+    const doorIcon = document.getElementById('door-status-icon');
+    const doorText = document.getElementById('door-status-text');
+    const receiptContainer = document.getElementById('receipt-container');
+    const receiptBody = document.getElementById('receipt-body');
+
+    let currentCheckedBarcode = null;
+
+    // Quick-Scan Buttons
+    document.querySelectorAll('.quick-barcode-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            barcodeInput.value = this.dataset.barcode;
+            handleScan();
+        });
+    });
+
+    btnScan.addEventListener('click', handleScan);
+    barcodeInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') handleScan();
+    });
+
+    function setLeds(ready, busy, error) {
+        ledReady.style.background = ready ? '#28a745' : '#555';
+        ledReady.style.boxShadow = ready ? '0 0 8px #28a745' : 'none';
+
+        ledBusy.style.background = busy ? '#ffc107' : '#555';
+        ledBusy.style.boxShadow = busy ? '0 0 8px #ffc107' : 'none';
+
+        ledError.style.background = error ? '#dc3545' : '#555';
+        ledError.style.boxShadow = error ? '0 0 8px #dc3545' : 'none';
+    }
+
+    // STEP 1: SCAN & CHECK
+    function handleScan() {
+        const barcode = barcodeInput.value.trim();
+        if (!barcode) return;
+
+        setLeds(false, true, false);
+        lcdTitle.innerText = '> PRÜFE BARCODE...';
+        lcdTitle.className = 'text-warning mb-2';
+        lcdMsg.innerText = `Anfrage für '${barcode}' an zentralen Server gesendet...`;
+        lcdSubmsg.innerText = '> Bitte warten...';
+
+        fetch("{% url 'returns:api_check' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ barcode: barcode })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(result => {
+            if (result.status === 200 && result.body.eligible) {
+                // ANNAHME FREIGEGEBEN
+                setLeds(true, false, false);
+                currentCheckedBarcode = barcode;
+
+                lcdTitle.innerText = '> ANNAHME ERLAUBT';
+                lcdTitle.className = 'text-success mb-2';
+                
+                let details = `Exemplar: ${result.body.media_title}\nAusgeliehen an: ${result.body.patron_name} (${result.body.patron_number})\n`;
+                if (result.body.is_overdue) {
+                    details += `⚠️ ÜBERFÄLLIG: ${result.body.overdue_days} Tag(e)!\nFällige Gebühr: ${result.body.estimated_fee} €`;
+                    lcdScreen.style.borderColor = '#ffc107';
+                } else {
+                    details += `Fristgerechte Rückgabe (Fällig am ${new Date(result.body.planned_return_date).toLocaleDateString('de-AT')})`;
+                    lcdScreen.style.borderColor = '#00ff66';
+                }
+                lcdMsg.innerText = details;
+                lcdSubmsg.innerText = `> Zielort nach Rücknahme: Regal ${result.body.shelf_id}, Fach ${result.body.compartment}`;
+
+                // Einwurfschacht entriegeln
+                intakeDoor.className = 'p-3 mb-2 rounded bg-success text-white fw-bold shadow';
+                doorIcon.innerText = '🔓';
+                doorText.innerText = 'Einwurfschacht geöffnet: Exemplar bitte einlegen!';
+                btnDeposit.classList.remove('disabled');
+                btnDeposit.removeAttribute('disabled');
+            } else {
+                // ANNAHME VERWEIGERT
+                setLeds(false, false, true);
+                currentCheckedBarcode = null;
+
+                lcdTitle.innerText = '> ANNAHME VERWEIGERT';
+                lcdTitle.className = 'text-danger mb-2';
+                lcdMsg.innerText = result.body.message || 'Unbekannter Fehler bei der Annahmeprüfung.';
+                lcdSubmsg.innerText = '> Keine Daten auf dem Server verändert. Bitte Personal kontaktieren.';
+                lcdScreen.style.borderColor = '#dc3545';
+
+                // Einwurfschacht sperren
+                intakeDoor.className = 'p-3 mb-2 rounded bg-danger text-white fw-bold';
+                doorIcon.innerText = '⛔';
+                doorText.innerText = 'Einwurfschacht gesperrt (Annahme verweigert)';
+                btnDeposit.classList.add('disabled');
+                btnDeposit.setAttribute('disabled', 'disabled');
+            }
+        })
+        .catch(err => {
+            setLeds(false, false, true);
+            lcdTitle.innerText = '> VERBINDUNGSFEHLER';
+            lcdTitle.className = 'text-danger mb-2';
+            lcdMsg.innerText = 'Server nicht erreichbar: ' + err.message;
+        });
+    }
+
+    // STEP 2: PHYSICAL DEPOSIT / CONFIRM
+    btnDeposit.addEventListener('click', function () {
+        if (!currentCheckedBarcode) return;
+
+        setLeds(false, true, false);
+        btnDeposit.classList.add('disabled');
+        btnDeposit.setAttribute('disabled', 'disabled');
+
+        lcdTitle.innerText = '> VERBUCHE RÜCKGABE...';
+        lcdTitle.className = 'text-warning mb-2';
+        lcdMsg.innerText = 'Exemplar wird intern transportiert und registriert...';
+
+        fetch("{% url 'returns:api_confirm' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ barcode: currentCheckedBarcode })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                setLeds(true, false, false);
+                lcdTitle.innerText = '> RÜCKGABE ERFOLGREICH ABGESCHLOSSEN';
+                lcdTitle.className = 'text-success mb-2';
+                lcdMsg.innerText = data.message;
+                lcdSubmsg.innerText = `> Neuer Status: ${data.status}`;
+                lcdScreen.style.borderColor = '#00ff66';
+
+                // Einwurfschacht wieder schließen
+                intakeDoor.className = 'p-3 mb-2 rounded bg-black border border-secondary text-secondary';
+                doorIcon.innerText = '🔒';
+                doorText.innerText = 'Einwurfschacht verriegelt';
+
+                // Quittung anzeigen
+                receiptContainer.classList.remove('d-none');
+                receiptBody.innerHTML = `
+                    <p class="mb-1"><strong>Datum/Zeit:</strong> ${new Date().toLocaleString('de-AT')}</p>
+                    <p class="mb-1"><strong>Exemplar-Barcode:</strong> ${data.barcode}</p>
+                    <p class="mb-1"><strong>Standort:</strong> Regal ${data.shelf_id}, Fach ${data.compartment}</p>
+                    <p class="mb-1"><strong>Exemplarstatus:</strong> ${data.status}</p>
+                    <p class="mb-1"><strong>Überziehungstage:</strong> ${data.overdue_days}</p>
+                    <p class="mb-1"><strong>Versäumnisgebühr:</strong> ${data.overdue_fee} €</p>
+                    ${data.has_pending_reservations ? '<p class="text-danger fw-bold mb-0">HINWEIS: Für dieses Exemplar liegt eine Reservierung vor!</p>' : ''}
+                `;
+            } else {
+                setLeds(false, false, true);
+                lcdTitle.innerText = '> FEHLER BEI RÜCKGABE';
+                lcdTitle.className = 'text-danger mb-2';
+                lcdMsg.innerText = data.message;
+            }
+        });
+    });
+
+    // RESET FOR NEXT ITEM
+    btnReset.addEventListener('click', function () {
+        currentCheckedBarcode = null;
+        barcodeInput.value = '';
+        receiptContainer.classList.add('d-none');
+        setLeds(true, false, false);
+        lcdTitle.innerText = '> BEREIT FÜR RÜCKGABE';
+        lcdTitle.className = 'text-success mb-2';
+        lcdMsg.innerText = 'Bitte scannen Sie den Barcode des physischen Exemplars.';
+        lcdSubmsg.innerText = '> Warten auf Barcode-Scanner-Signal...';
+        lcdScreen.style.borderColor = '#00ff66';
+        intakeDoor.className = 'p-3 mb-2 rounded bg-black border border-secondary text-secondary';
+        doorIcon.innerText = '🔒';
+        doorText.innerText = 'Einwurfschacht verriegelt';
+        btnDeposit.classList.add('disabled');
+        btnDeposit.setAttribute('disabled', 'disabled');
+        barcodeInput.focus();
+    });
+});
+</script>
+{% endblock %}

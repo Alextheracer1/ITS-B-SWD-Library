@@ -1,4 +1,201 @@
-{# Use Case 1: Template für Medium ausleihen (Patron Web-App / Kiosk UI) #}
-{# Verantwortlich: Alexander Graf (1. Autor) #}
+{% extends "base.html" %}
 
-{# TODO: Alexander Graf - HTML-Template für Medienauswahl, Verfügbarkeitsanzeige und Ausleihbestätigung #}
+{% block title %}LiBros - Use Case 1: Medium ausleihen{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">UC-01: Medium ausleihen</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 fw-bold text-primary">📖 Use Case 1: Medium ausleihen (Loan)</h1>
+                <p class="text-muted mb-0">Verantwortlich: <strong>Alexander Graf (1. Autor)</strong> &bull; Client: Web-App / Kiosk-Terminal</p>
+            </div>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm">&larr; Zurück zur Übersicht</a>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                {% if message.tags == 'success' %}
+                    <h5 class="alert-heading">🎉 Vorgang erfolgreich!</h5>
+                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <h5 class="alert-heading">⚠️ Ausleihe nicht möglich!</h5>
+                {% else %}
+                    <h5 class="alert-heading">ℹ️ Hinweis</h5>
+                {% endif %}
+                <p class="mb-0">{{ message }}</p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if success_result %}
+<div class="card border-success shadow mb-4">
+    <div class="card-header bg-success text-white fw-bold">
+        ✅ Ausleihbestätigung & Standort-Abruf
+    </div>
+    <div class="card-body">
+        <h4 class="card-title text-success">{{ success_result.loan.copy.media.name }}</h4>
+        <p class="card-text">{{ success_result.message }}</p>
+        
+        <div class="row g-3 mt-2">
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded text-center border">
+                    <small class="text-muted d-block">Zugewiesenes Exemplar</small>
+                    <strong class="fs-5 text-dark">{{ success_result.copy.barcode }}</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded text-center border">
+                    <small class="text-muted d-block">Physischer Standort</small>
+                    <strong class="fs-5 text-primary">Regal {{ success_result.shelf_id }} &bull; {{ success_result.compartment }}</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded text-center border">
+                    <small class="text-muted d-block">Geplantes Rückgabedatum</small>
+                    <strong class="fs-5 text-danger">{{ success_result.loan.planned_return_date|date:"d.m.Y" }}</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 bg-light rounded text-center border">
+                    <small class="text-muted d-block">Kunde</small>
+                    <strong class="fs-6 text-dark">{{ success_result.loan.patron.name }}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-end">
+            <a href="{% url 'loans:catalog' %}" class="btn btn-primary">Weiteres Medium ausleihen</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Ausleih-Formular (Kiosk / Terminal) -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white fw-bold">
+                📱 Kiosk-Checkout Terminal
+            </div>
+            <div class="card-body">
+                <form action="{% url 'loans:checkout' %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.patron.id_for_label }}" class="form-label fw-bold">1. Kunde auswählen:</label>
+                        {{ form.patron }}
+                        <div class="form-text">Alters- und FSK-Prüfung erfolgt serverseitig.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.media.id_for_label }}" class="form-label fw-bold">2. Gewünschtes Medium (Titel):</label>
+                        {{ form.media }}
+                        <div class="form-text">System weist automatisch freies Exemplar zu.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.reservation.id_for_label }}" class="form-label fw-bold">3. Reservierung (optional):</label>
+                        {{ form.reservation }}
+                        <div class="form-text">Bestehende Vormerkung wird automatisch eingelöst.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
+                        Medium jetzt verbindlich ausleihen
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medienkatalog & Verfügbarkeit -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-bold">📚 Medienbestand & Verfügbarkeit</h5>
+                <form method="get" class="d-flex" style="max-width: 250px;">
+                    <input type="text" name="q" class="form-control form-control-sm me-2" placeholder="Titel suchen..." value="{{ search_query }}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">Suchen</button>
+                </form>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Titel & Details</th>
+                                <th>FSK</th>
+                                <th>Genres</th>
+                                <th>Verfügbarkeit</th>
+                                <th>Standort(e)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in media_data %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.media.name }}</strong>
+                                    {% if item.media.book %}
+                                        <div class="small text-muted">Autor: {{ item.media.book.author }}</div>
+                                    {% elif item.media.dvd %}
+                                        <div class="small text-muted">Regie: {{ item.media.dvd.director }} ({{ item.media.dvd.runtime }} Min.)</div>
+                                    {% elif item.media.music_cd %}
+                                        <div class="small text-muted">Interpret: {{ item.media.music_cd.artist }}</div>
+                                    {% elif item.media.magazine %}
+                                        <div class="small text-muted">Ausgabe: {{ item.media.magazine.edition }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.media.age_limit >= 18 %}
+                                        <span class="badge bg-danger">FSK 18</span>
+                                    {% elif item.media.age_limit > 0 %}
+                                        <span class="badge bg-warning text-dark">FSK {{ item.media.age_limit }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">FSK 0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% for g in item.genres %}
+                                        <span class="badge bg-light text-dark border">{{ g.name }}</span>
+                                    {% empty %}
+                                        <span class="text-muted small">-</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if item.available_count > 0 %}
+                                        <span class="badge bg-success">{{ item.available_count }} / {{ item.total_count }} verfügbar</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">0 / {{ item.total_count }} verfügbar</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% for loc in item.locations %}
+                                        <span class="badge bg-info text-dark mb-1 d-inline-block">{{ loc }}</span><br>
+                                    {% empty %}
+                                        <span class="text-muted small">Kein freies Exemplar im Regal</span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">Keine Medien gefunden.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -21,8 +21,8 @@
                     FSK-Prüfung, Concurrency Control und Ermittlung des Regal-Standorts.
                 </p>
                 <div class="mt-auto">
-                    <a href="#" class="btn btn-outline-primary w-100 disabled" aria-disabled="true">
-                        Ausleihe aufrufen (In Entwicklung)
+                    <a href="{% url 'loans:catalog' %}" class="btn btn-primary w-100 fw-bold">
+                        📖 Ausleihe starten (Kiosk / Web)
                     </a>
                 </div>
             </div>
@@ -41,8 +41,8 @@
                     Fristüberprüfung, Gebührenberechnung und Nutzungsstatistik-Aktualisierung.
                 </p>
                 <div class="mt-auto">
-                    <a href="#" class="btn btn-outline-success w-100 disabled" aria-disabled="true">
-                        Rückgabestation (In Entwicklung)
+                    <a href="{% url 'returns:station' %}" class="btn btn-success w-100 fw-bold">
+                        📟 Rückgabestation öffnen
                     </a>
                 </div>
             </div>
@@ -61,8 +61,8 @@
                     rechnerische Kapazitätsprüfung, FSK-Prüfung und Abholfrist-Verwaltung.
                 </p>
                 <div class="mt-auto">
-                    <a href="#" class="btn btn-outline-warning text-dark w-100 disabled" aria-disabled="true">
-                        Reservierung (In Entwicklung)
+                    <a href="{% url 'reservations:index' %}" class="btn btn-warning text-dark w-100 fw-bold">
+                        📅 Reservierung durchführen
                     </a>
                 </div>
             </div>
